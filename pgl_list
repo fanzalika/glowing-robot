@@ -1,0 +1,6 @@
+#!/bin/bash
+source "$( pwd )/config.sh"
+
+PGPASSWORD=$OPENERP_PASS psql -U $OPENERP_USER -w -h $OPENERP_HOST -d postgres <<EOF
+    \l
+EOF

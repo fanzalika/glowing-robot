@@ -1,0 +1,27 @@
+#!/bin/bash
+
+source "$( pwd )/config.sh"
+
+[ -z $1 ] && {
+    echo "
+        Copy a postgres database to another.
+        
+        Usage: pgl_copy [SOURCE DB] [DESTINATION DB]
+    "
+    exit 
+}
+
+SRC=$1
+DST=$2
+
+PGPASSWORD=$OPENERP_PASS psql -h $OPENERP_HOST -U $OPENERP_USER -w -d postgres  <<EOF
+
+/* KILL ALL EXISTING CONNECTION FROM ORIGINAL DB (sourcedb)*/
+
+SELECT pg_terminate_backend(pg_stat_activity.pid) FROM pg_stat_activity 
+WHERE pg_stat_activity.datname = '$SRC' AND pid <> pg_backend_pid();
+
+/* CLONE DATABASE */
+CREATE DATABASE $DST WITH TEMPLATE $SRC  OWNER openerp;
+
+EOF
