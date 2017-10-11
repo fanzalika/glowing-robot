@@ -1,0 +1,25 @@
+#!/bin/bash
+
+source "$( pwd )/config.sh"
+
+[ -z $1 ] && {
+    echo "
+        Drop database with terminating connected database.
+        
+        Usage: 
+            ./pgl_dropdb [DATABASE]
+    "
+    exit 
+}
+
+DB=$1
+
+PGPASSWORD=$OPENERP_PASS psql -U $OPENERP_USER -w -h $OPENERP_HOST -d postgres <<EOF
+
+SELECT pg_terminate_backend(pg_stat_activity.pid)
+    FROM pg_stat_activity
+     WHERE pg_stat_activity.datname = '$DB'
+    AND pid <> pg_backend_pid();
+DROP DATABASE $DB;
+
+EOF
