@@ -1,0 +1,43 @@
+#!/bin/bash
+
+# Upload local database, transfer to remote, delete remote dabase if necessary and upload to remote
+# postgres server the local database. 
+#
+# !WARNING - it can delete the remote database. 
+
+[ -z $3 ] && echo "
+    Usage: pgl_upload [LOCAL SOURCE DB] [PATH TO REMOTE CONFIG] [REMOTE DESTINATION DB]
+
+    Upload local db to remote server. Warning - it can delete the remote database.
+
+    Example:
+        pgl_upload data ../../hosts_a/config.sh data
+
+" && exit
+
+set -x
+source "$(pwd)/config.sh"
+
+SRC_DB=$1
+CONFIG=$2
+DST_DB=$3
+
+RHOST=$(grep "IP" $CONFIG | sed s/IP=// )
+RUSER=$(grep "^USER" $CONFIG | sed s/USER=// )
+RPORT=$(grep "PORT" $CONFIG | sed s/PORT=// )
+ROPENERP_HOST=$(grep "OPENERP_HOST" $CONFIG | sed s/OPENERP_HOST=// )
+ROPENERP_USER=$(grep "OPENERP_USER" $CONFIG | sed s/OPENERP_USER=// )
+ROPENERP_PASS=$(grep "OPENERP_PASS" $CONFIG | sed s/OPENERP_PASS=// )
+
+PGPASSWORD=$OPENERP_PASS pg_dump -U $OPENERP_USER -w -h $OPENERP_HOST -d $SRC_DB -f /tmp/${SRC_DB}.sql 
+scp -C -P $RPORT /tmp/${SRC_DB}.sql $RUSER@$RHOST:/tmp/${SRC_DB}.sql
+
+ssh -p $RPORT $RUSER@$RHOST "
+    PGPASSWORD=$ROPENERP_PASS psql -U $ROPENERP_USER -w -h $ROPENERP_HOST -d postgres -c \" 
+        SELECT pg_terminate_backend(pg_stat_activity.pid) FROM pg_stat_activity  WHERE pg_stat_activity.datname = '$DST_DB'
+            AND pid <> pg_backend_pid(); \"
+
+    PGPASSWORD=$ROPENERP_PASS dropdb -U $ROPENERP_USER -w -h $ROPENERP_HOST $DST_DB
+    PGPASSWORD=$ROPENERP_PASS createdb -U $ROPENERP_USER -w -h $ROPENERP_HOST $DST_DB
+    PGPASSWORD=$ROPENERP_PASS psql -U $ROPENERP_USER -w -h $ROPENERP_HOST -d $DST_DB < /tmp/${SRC_DB}.sql > /dev/null
+"
