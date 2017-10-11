@@ -22,6 +22,6 @@ SELECT pg_terminate_backend(pg_stat_activity.pid) FROM pg_stat_activity
 WHERE pg_stat_activity.datname = '$SRC' AND pid <> pg_backend_pid();
 
 /* CLONE DATABASE */
-CREATE DATABASE $DST WITH TEMPLATE $SRC  OWNER openerp;
+CREATE DATABASE $DST WITH TEMPLATE $SRC  OWNER $OPENERP_USER;
 
 EOF
