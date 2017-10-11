@@ -1,0 +1,15 @@
+#!/bin/bash
+
+[ -z $1 ] && echo "
+    Usage: pgl_resetpwd [DATABASE]
+
+    Reset OpenERP database to default password
+" && exit
+
+source "$(pwd)/config.sh"
+
+DB=$1
+
+PGPASSWORD=$OPENERP_PASS psql -U $OPENERP_USER -w -h $OPENERP_HOST -d $DB <<EOF
+    UPDATE res_users SET password = 'admin' WHERE login = 'admin'; 
+EOF
