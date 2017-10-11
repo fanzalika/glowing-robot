@@ -2,4 +2,3 @@
 # source activate
 
 export PATH=$PATH:$( pwd )
-PS1="SYSADMIN (\w) $ "
